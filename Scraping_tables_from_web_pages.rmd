@@ -1,0 +1,104 @@
+---
+author: Cyrus Wakibia
+title: Scraping Data From Web Pages
+date:  "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    code_download: true
+    css: css.css
+---
+
+# Web Scraping Data From Tables in Web Pages
+
+>- Most of the times you may be looking forward to get data from the web but it is existing in table format
+>- You can choose to copy-paste which is tendious and also time-consuming. Another drawback of copy-pasting, is that you are likely to lose some of the information along the way
+>- Fortunately, you can ease all the work by obtaining the entire tables from the web pages by performing simple scraping
+
+We will be focusing with the `rvest` package which is core in performing web scraping
+
+>- We will be scraping tables from Wikipedia page [Premier League](https://en.wikipedia.org/wiki/Premier_League) 
+
+![](D:/Shiny_apps_Dashboard/pl.jpg)
+
+>- One major challenge with web scraping is that websites are prone to changes, fortunately, Wikipedia changes doesn't alter the structure of the page and that why it will be used.
+>- We will clean the data for the **Top Ten Premier League Players** with the highest transfer fee
+
+
+```{r setup, include=FALSE}
+## load packages
+library(readr)
+library(dplyr)
+library(rvest)
+library(stringr)
+library(janitor)
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE)
+```
+
+>- Number of tables in the page
+
+```{r parse url}
+## url that contains the tables
+
+url <- "https://en.wikipedia.org/wiki/Premier_League"
+
+## parse the page
+wikipedia_page <- read_html(url)
+page_tables <- 
+  wikipedia_page %>% 
+  html_table() 
+## This returns a list of tables
+
+## Check how many tables are in the list
+length(page_tables)
+
+```
+
+>- Display the first five Tables in the list object returned
+
+```{r tables within the web page}
+for(i in 1:5){
+  print(page_tables[[i]])
+}
+
+```
+
+This is a table that we will finally select among the 29 tables within the page:
+
+![](C:/Users/Sigma/Pictures/ch 9/player transfer fee.png)
+
+
+>- Below is the data obtained in it's raw format
+
+```{r Player Transfer Tables}
+Players_transfer <- page_tables[[19]]
+Players_transfer
+
+```
+
+>- Perform little preprocessing on the data to make it ready for analysis
+
+
+```{r Preprocess the data}
+
+player_Transfers <- 
+  Players_transfer %>% 
+  ## Clean the names to standard R-naming
+  clean_names() %>% 
+  ## Rename the variables
+  rename(Transfer_From = transfer,
+         Transfer_to = transfer_2) %>% 
+  ## Extract digits from fee_min string
+  mutate(`Transfer_fee Million(Euros)`= str_extract_all(
+    fee_min, '\\d+'
+  ) %>% unlist() %>% as.numeric()
+  ) %>% 
+  ## Drop redundant variables
+  select(-c(fee_min, reference_s))
+  
+
+
+
+player_Transfers
+```
+
